@@ -1,4 +1,6 @@
 {
+  "name": "blood-connect",
+  "version": "1.0.0",
   "scripts": {
     "dev": "next dev",
     "build": "npx prisma generate && next build",
