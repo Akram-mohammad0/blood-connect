@@ -1,0 +1,12 @@
+# Create .gitignore with standard Next.js + Node rules
+@"
+node_modules/
+.next/
+.env
+.DS_Store
+*.log
+"@ | Out-File -Encoding UTF8 .gitignore
+.vercel
+
+# Local Netlify folder
+.netlify
