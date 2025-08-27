@@ -1,51 +1,46 @@
+"use client";
+
+import { useState } from "react";
+import SearchForm from "@/components/SearchForm";
+import DonorCard from "@/components/DonorCard";
 import { Donor } from "@/types";
+import { motion } from "framer-motion";
 
-interface DonorCardProps {
-  donor: Donor & { distance?: number; callLink?: string; whatsappLink?: string };
-}
+export default function DonorPage() {
+  const [donors, setDonors] = useState<Donor[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-export default function DonorCard({ donor }: DonorCardProps) {
   return (
-    <div className="border p-4 rounded shadow hover:shadow-lg transition duration-200">
-      <h2 className="text-xl font-bold">{donor.name}</h2>
-      <p>
-        Blood Type: <span className="font-semibold">{donor.bloodType}</span>
-      </p>
-      <p>Location: {donor.location}</p>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="max-w-6xl mx-auto px-4 py-8"
+    >
+      <h1 className="text-3xl font-bold text-red-600 mb-6 text-center">
+        🔍 Find Blood Donors
+      </h1>
 
-      {donor.distance !== undefined && (
-        <p>Distance: {donor.distance.toFixed(2)} km</p>
-      )}
+      <SearchForm
+        onResults={setDonors}
+        setLoading={setLoading}
+        setError={setError}
+      />
 
-      {donor.healthIssues && donor.healthIssues.length > 0 && (
-        <p>
-          Health Issues:{" "}
-          {Array.isArray(donor.healthIssues)
-            ? donor.healthIssues.join(", ")
-            : donor.healthIssues}
-        </p>
-      )}
+      {error && <p className="mt-4 text-red-500 text-center">{error}</p>}
 
-      <div className="mt-2 flex gap-2">
-        {donor.callLink && (
-          <a
-            href={donor.callLink}
-            className="bg-green-500 text-white px-3 py-1 rounded"
-          >
-            Call
-          </a>
-        )}
-        {donor.whatsappLink && (
-          <a
-            href={donor.whatsappLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-green-700 text-white px-3 py-1 rounded"
-          >
-            WhatsApp
-          </a>
+      <div className="mt-8 grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+        {loading ? (
+          <p className="text-center text-gray-500 col-span-full">Loading donors...</p>
+        ) : donors.length > 0 ? (
+          donors.map((donor) => <DonorCard key={donor.id} donor={donor} />)
+        ) : (
+          <p className="text-center text-gray-500 col-span-full">
+            No donors found. Try changing the filters.
+          </p>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
