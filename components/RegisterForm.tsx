@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
@@ -9,6 +9,8 @@ const GENDERS = ["Male", "Female", "Other"];
 export default function RegisterForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
+
   const [form, setForm] = useState({
     name: "",
     gender: "",
@@ -22,10 +24,28 @@ export default function RegisterForm() {
     healthIssues: "",
     notes: "",
   });
+
   const [error, setError] = useState<string | null>(null);
 
   const onChange = (key: string, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
+
+  // ✅ Auto-fetch geolocation when form mounts
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setLocationCoords({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          });
+        },
+        () => {
+          console.warn("Geolocation blocked. Falling back to manual location input.");
+        }
+      );
+    }
+  }, []);
 
   const validate = () => {
     if (!form.name.trim()) return "Name is required.";
@@ -38,6 +58,7 @@ export default function RegisterForm() {
     if (!form.location.trim()) return "Location is required.";
     if (!form.contact.trim() || form.contact.length < 10)
       return "Valid contact number is required.";
+    if (!locationCoords) return "Could not fetch your GPS location. Please allow location access.";
     return null;
   };
 
@@ -60,10 +81,12 @@ export default function RegisterForm() {
           name: form.name.trim(),
           gender: form.gender,
           age: Number(form.age),
-          bloodType: form.bloodType.toUpperCase(), // ✅ Store blood group consistently
+          bloodType: form.bloodType.toUpperCase(),
           weight: Number(form.weight),
           lastDonation: form.lastDonation ? new Date(form.lastDonation) : null,
           location: form.location.trim(),
+          latitude: locationCoords?.lat,   // ✅ NEW
+          longitude: locationCoords?.lng,  // ✅ NEW
           email: form.email.trim() || null,
           contact: form.contact.trim(),
           healthIssues: form.healthIssues.trim() || null,

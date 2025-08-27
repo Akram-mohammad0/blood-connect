@@ -1,7 +1,18 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Droplet, MapPin, Phone, MessageCircle, User, Mail, Activity, Calendar, Heart } from "lucide-react";
+import {
+  Droplet,
+  MapPin,
+  Phone,
+  MessageCircle,
+  User,
+  Mail,
+  Activity,
+  Calendar,
+  Heart,
+} from "lucide-react";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 
 type Donor = {
   id: number;
@@ -9,7 +20,7 @@ type Donor = {
   bloodType: string;
   gender?: string;
   location: string;
-  contact: string;
+  contact: string; // raw number
   email?: string;
   age?: number;
   weight?: number;
@@ -19,14 +30,51 @@ type Donor = {
   createdAt: string;
 };
 
+// ✅ Detect number & format internationally
+const formatPhoneNumber = (number: string, location: string): string => {
+  try {
+    // Extract country code from location (e.g. "India" -> "IN")
+    const countryCode =
+      location.toLowerCase().includes("india") ? "IN" :
+      location.toLowerCase().includes("united states") ? "US" :
+      location.toLowerCase().includes("canada") ? "CA" :
+      location.toLowerCase().includes("united kingdom") ? "GB" :
+      undefined; // fallback
+    
+    const phoneNumber = parsePhoneNumberFromString(number, countryCode);
+    if (phoneNumber && phoneNumber.isValid()) {
+      return phoneNumber.number; // e.g. +919876543210
+    }
+    return number; // fallback: return as entered
+  } catch {
+    return number;
+  }
+};
+
 export default function DonorCard({ donor }: { donor: Donor }) {
+  const formattedNumber = formatPhoneNumber(donor.contact, donor.location);
+
+  // ✅ Call
   const handleCall = () => {
-    window.open(`tel:${donor.contact}`);
+    window.open(`tel:${formattedNumber}`);
   };
 
+  // ✅ WhatsApp
   const handleWhatsApp = () => {
-    const message = `Hi ${donor.name}, I found your details on the Blood Donor app. Are you available for blood donation?`;
-    window.open(`https://wa.me/${donor.contact}?text=${encodeURIComponent(message)}`);
+    const message = `Hi ${donor.name}, I found your details on the Blood Connect platform. Are you available for blood donation?`;
+    window.open(
+      `https://wa.me/${formattedNumber.replace("+", "")}?text=${encodeURIComponent(message)}`,
+      "_blank"
+    );
+  };
+
+  // ✅ Email
+  const handleEmail = () => {
+    if (donor.email) {
+      window.open(
+        `mailto:${donor.email}?subject=Blood Donation&body=Hi ${donor.name}, I would like to contact you regarding blood donation.`
+      );
+    }
   };
 
   return (
@@ -35,7 +83,7 @@ export default function DonorCard({ donor }: { donor: Donor }) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.03 }}
       transition={{ duration: 0.3 }}
-      className="bg-white dark:bg-gray-900 shadow-lg rounded-2xl p-5 border hover:shadow-xl transition-all"
+      className="bg-white dark:bg-gray-900 shadow-lg rounded-2xl p-5 border hover:shadow-xl transition-all w-[380px] sm:w-[420px] md:w-[450px] break-words"
     >
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -55,16 +103,17 @@ export default function DonorCard({ donor }: { donor: Donor }) {
         </span>
       </div>
 
-      {/* Location & Contact */}
+      {/* Location */}
       <div className="flex items-center mt-3 text-gray-600 dark:text-gray-300 gap-2">
         <MapPin className="w-5 h-5 text-red-500" />
         <span>{donor.location}</span>
       </div>
 
+      {/* Email */}
       {donor.email && (
         <div className="flex items-center mt-2 text-gray-600 dark:text-gray-300 gap-2">
           <Mail className="w-5 h-5 text-blue-500" />
-          <span>{donor.email}</span>
+          <span className="break-words w-[300px] sm:w-[350px]">{donor.email}</span>
         </div>
       )}
 
@@ -96,8 +145,8 @@ export default function DonorCard({ donor }: { donor: Donor }) {
         )}
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-3 mt-5">
+      {/* Buttons */}
+      <div className="flex flex-wrap gap-3 mt-5">
         <button
           onClick={handleCall}
           className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-xl shadow-md transition-all"
@@ -113,6 +162,16 @@ export default function DonorCard({ donor }: { donor: Donor }) {
           <MessageCircle className="w-5 h-5" />
           WhatsApp
         </button>
+
+        {donor.email && (
+          <button
+            onClick={handleEmail}
+            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-xl shadow-md transition-all"
+          >
+            <Mail className="w-5 h-5" />
+            Email
+          </button>
+        )}
       </div>
 
       {/* Registered Date */}
