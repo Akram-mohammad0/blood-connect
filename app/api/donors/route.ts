@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { parsePhoneNumberFromString } from "libphonenumber-js";
+import { parsePhoneNumberFromString, CountryCode } from "libphonenumber-js";
 
 // ✅ Haversine formula for distance calculation
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -18,7 +18,9 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
 
 // ✅ Validate phone number function
 function validatePhoneNumber(number: string, country?: string) {
-  const phoneNumber = parsePhoneNumberFromString(number, country);
+  const phoneNumber = parsePhoneNumberFromString(number, {
+    defaultCountry: (country as CountryCode) || "IN", // proper typing
+  });
   if (!phoneNumber || !phoneNumber.isValid()) {
     throw new Error("Invalid phone number");
   }
@@ -31,7 +33,7 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     // Validate phone number before saving
-    const validContact = validatePhoneNumber(body.contact, body.countryCode || "IN"); // default India
+    const validContact = validatePhoneNumber(body.contact, body.countryCode || "IN");
 
     const donor = await prisma.donor.create({
       data: {
