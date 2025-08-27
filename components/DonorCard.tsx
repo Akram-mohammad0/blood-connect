@@ -12,7 +12,6 @@ import {
   Calendar,
   Heart,
 } from "lucide-react";
-import { parsePhoneNumberFromString } from "libphonenumber-js";
 
 type Donor = {
   id: number;
@@ -20,7 +19,7 @@ type Donor = {
   bloodType: string;
   gender?: string;
   location: string;
-  contact: string; // raw number
+  contact: string; // E.164 format from API
   email?: string;
   age?: number;
   weight?: number;
@@ -28,47 +27,21 @@ type Donor = {
   notes?: string;
   lastDonation?: string | null;
   createdAt: string;
-};
-
-// ✅ Detect number & format internationally
-const formatPhoneNumber = (number: string, location: string): string => {
-  try {
-    // Extract country code from location (e.g. "India" -> "IN")
-    const countryCode =
-      location.toLowerCase().includes("india") ? "IN" :
-      location.toLowerCase().includes("united states") ? "US" :
-      location.toLowerCase().includes("canada") ? "CA" :
-      location.toLowerCase().includes("united kingdom") ? "GB" :
-      undefined; // fallback
-    
-    const phoneNumber = parsePhoneNumberFromString(number, countryCode);
-    if (phoneNumber && phoneNumber.isValid()) {
-      return phoneNumber.number; // e.g. +919876543210
-    }
-    return number; // fallback: return as entered
-  } catch {
-    return number;
-  }
+  distance?: number; // ✅ from API
+  callLink?: string; // ✅ from API
+  whatsappLink?: string; // ✅ from API
 };
 
 export default function DonorCard({ donor }: { donor: Donor }) {
-  const formattedNumber = formatPhoneNumber(donor.contact, donor.location);
-
-  // ✅ Call
+  // ✅ Use links directly from API
   const handleCall = () => {
-    window.open(`tel:${formattedNumber}`);
+    if (donor.callLink) window.open(donor.callLink);
   };
 
-  // ✅ WhatsApp
   const handleWhatsApp = () => {
-    const message = `Hi ${donor.name}, I found your details on the Blood Connect platform. Are you available for blood donation?`;
-    window.open(
-      `https://wa.me/${formattedNumber.replace("+", "")}?text=${encodeURIComponent(message)}`,
-      "_blank"
-    );
+    if (donor.whatsappLink) window.open(donor.whatsappLink, "_blank");
   };
 
-  // ✅ Email
   const handleEmail = () => {
     if (donor.email) {
       window.open(
@@ -103,10 +76,12 @@ export default function DonorCard({ donor }: { donor: Donor }) {
         </span>
       </div>
 
-      {/* Location */}
+      {/* Location + distance */}
       <div className="flex items-center mt-3 text-gray-600 dark:text-gray-300 gap-2">
         <MapPin className="w-5 h-5 text-red-500" />
-        <span>{donor.location}</span>
+        <span>
+          {donor.location} {donor.distance && `• ${donor.distance.toFixed(2)} km away`}
+        </span>
       </div>
 
       {/* Email */}
@@ -147,21 +122,25 @@ export default function DonorCard({ donor }: { donor: Donor }) {
 
       {/* Buttons */}
       <div className="flex flex-wrap gap-3 mt-5">
-        <button
-          onClick={handleCall}
-          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-xl shadow-md transition-all"
-        >
-          <Phone className="w-5 h-5" />
-          Call
-        </button>
+        {donor.callLink && (
+          <button
+            onClick={handleCall}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-xl shadow-md transition-all"
+          >
+            <Phone className="w-5 h-5" />
+            Call
+          </button>
+        )}
 
-        <button
-          onClick={handleWhatsApp}
-          className="flex items-center gap-2 bg-[#25D366] hover:bg-green-600 text-white font-medium px-4 py-2 rounded-xl shadow-md transition-all"
-        >
-          <MessageCircle className="w-5 h-5" />
-          WhatsApp
-        </button>
+        {donor.whatsappLink && (
+          <button
+            onClick={handleWhatsApp}
+            className="flex items-center gap-2 bg-[#25D366] hover:bg-green-600 text-white font-medium px-4 py-2 rounded-xl shadow-md transition-all"
+          >
+            <MessageCircle className="w-5 h-5" />
+            WhatsApp
+          </button>
+        )}
 
         {donor.email && (
           <button

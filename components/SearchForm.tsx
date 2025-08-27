@@ -29,12 +29,14 @@ interface SearchFormProps {
   onResults: (data: Donor[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (msg: string) => void;
+  userCoords?: { lat: number; lng: number } | null; // ✅ Added
 }
 
 export default function SearchForm({
   onResults,
   setLoading,
   setError,
+  userCoords, // ✅ Accept coords
 }: SearchFormProps) {
   const [q, setQ] = useState({ location: "", bloodType: "" });
 
@@ -53,6 +55,7 @@ export default function SearchForm({
       const params = new URLSearchParams({
         location: q.location.trim(),
         bloodType: q.bloodType.trim().toUpperCase(),
+        ...(userCoords ? { lat: userCoords.lat.toString(), lng: userCoords.lng.toString() } : {}), // ✅ send coords
       });
 
       // API endpoint
@@ -60,7 +63,6 @@ export default function SearchForm({
       console.log("🔗 Fetching donors:", url);
 
       const res = await fetch(url);
-
       console.log("🌐 Response status:", res.status);
       if (!res.ok) throw new Error(`Failed to fetch donors (${res.status})`);
 

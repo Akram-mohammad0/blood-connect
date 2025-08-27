@@ -19,7 +19,7 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
 // ✅ Validate phone number function
 function validatePhoneNumber(number: string, country?: string) {
   const phoneNumber = parsePhoneNumberFromString(number, {
-    defaultCountry: (country as CountryCode) || "IN", // proper typing
+    defaultCountry: (country as CountryCode) || "IN",
   });
   if (!phoneNumber || !phoneNumber.isValid()) {
     throw new Error("Invalid phone number");
@@ -88,7 +88,10 @@ export async function GET(req: Request) {
       const lng = parseFloat(userLng);
 
       donors = donors
-        .map((d) => ({ ...d, distance: getDistance(lat, lng, d.latitude, d.longitude) }))
+        .map((d) => ({
+          ...d,
+          distance: Math.round(getDistance(lat, lng, d.latitude, d.longitude) * 100) / 100, // ✅ round to 2 decimals
+        }))
         .sort((a, b) => a.distance - b.distance);
     }
 
