@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 
-// ✅ Validate phone number safely (auto-add +91 if missing)
+// ✅ Safe phone number validation (+91 added if missing)
 function validatePhoneNumber(number: string) {
   if (!number) throw new Error("Contact number is required");
 
-  // If number doesn't start with '+', add +91 by default
+  // Add +91 if missing
   if (!number.startsWith("+")) {
     number = "+91" + number;
   }
@@ -16,10 +16,10 @@ function validatePhoneNumber(number: string) {
     throw new Error("Invalid phone number");
   }
 
-  return phoneNumber.number; // Always returns in E.164 format (+91XXXXXXXXXX)
+  return phoneNumber.number; // Always returns in E.164 format
 }
 
-// ✅ POST: Register donor
+// ✅ POST: Register a new donor
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
       notes,
     } = body;
 
-    // ✅ Check required fields
+    // Required fields validation
     if (!name || !gender || !bloodType || !contact || !location) {
       return NextResponse.json(
         { error: "Name, Gender, BloodType, Contact, and Location are required" },
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ Validate and normalize contact number
+    // Validate and normalize contact number
     const validContact = validatePhoneNumber(contact);
 
     // ✅ Save donor in DB
@@ -67,9 +67,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json(donor, { status: 201 });
   } catch (error: any) {
-    console.error("❌ Error creating donor:", error);
+    console.error("❌ POST Error:", error);
 
-    // ✅ Handle duplicate contact number error
+    // Prisma duplicate entry error
     if (error.code === "P2002") {
       return NextResponse.json(
         { error: "A donor with this contact already exists." },
@@ -98,7 +98,7 @@ export async function GET(req: Request) {
       );
     }
 
-    // ✅ Search donors by location + blood type (case-insensitive)
+    // ✅ Fetch donors from DB
     const donors = await prisma.donor.findMany({
       where: {
         AND: [
@@ -120,7 +120,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(donors, { status: 200 });
   } catch (error: any) {
-    console.error("❌ Error fetching donors:", error);
+    console.error("❌ GET Error:", error);
     return NextResponse.json(
       { error: error.message || "Failed to fetch donors" },
       { status: 500 }
