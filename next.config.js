@@ -2,9 +2,12 @@
 const nextConfig = {
   reactStrictMode: false,
   experimental: {
-    appDir: true, // ✅ Ensure app directory works properly
+    appDir: true,
   },
-  output: "standalone", // ✅ Required for Vercel to optimize build
+  webpack: (config) => {
+    config.resolve.fallback = { fs: false };
+    return config;
+  },
 };
 
 module.exports = nextConfig;
