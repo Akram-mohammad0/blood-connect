@@ -27,10 +27,9 @@ const countryCodes: Record<string, string> = {
   Bangladesh: "880",
   Nepal: "977",
   SriLanka: "94",
-  // Add more if needed
 };
 
-type Donor = {
+export type Donor = {
   id: number;
   name: string;
   bloodType: string;
@@ -47,36 +46,28 @@ type Donor = {
 };
 
 export default function DonorCard({ donor }: { donor: Donor }) {
-  // ✅ Get correct country code based on location
   const getCountryCode = (location: string): string => {
-    if (!location) return "91"; // Default India 🇮🇳
+    if (!location) return "91";
     const foundCountry = Object.keys(countryCodes).find((country) =>
       location.toLowerCase().includes(country.toLowerCase())
     );
-    return foundCountry ? countryCodes[foundCountry] : "91"; // Fallback to +91
+    return foundCountry ? countryCodes[foundCountry] : "91";
   };
 
-  // ✅ Format number into proper international format
   const formatPhoneNumber = (number: string, location: string) => {
-    const cleaned = number.replace(/\D/g, ""); // Remove spaces, dashes, etc.
+    const cleaned = number.replace(/\D/g, "");
     const countryCode = getCountryCode(location);
-
-    // If number already starts with the code → return as is
-    if (cleaned.startsWith(countryCode)) return cleaned;
-
-    return `${countryCode}${cleaned}`;
+    return cleaned.startsWith(countryCode) ? cleaned : `${countryCode}${cleaned}`;
   };
 
-  // ✅ Handle phone call
   const handleCall = () => {
     const formattedNumber = formatPhoneNumber(donor.contact, donor.location);
     window.open(`tel:+${formattedNumber}`);
   };
 
-  // ✅ Handle WhatsApp chat
   const handleWhatsApp = () => {
     const formattedNumber = formatPhoneNumber(donor.contact, donor.location);
-    const message = `Hi ${donor.name}, I found your details on the Blood Donor app. Are you available for blood donation?`;
+    const message = `Hi ${donor.name}, I found your details on the Blood Connect app. Are you available for donation?`;
     window.open(`https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`);
   };
 
@@ -86,7 +77,7 @@ export default function DonorCard({ donor }: { donor: Donor }) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.03 }}
       transition={{ duration: 0.3 }}
-      className="bg-white dark:bg-gray-900 shadow-lg rounded-2xl p-5 border hover:shadow-xl transition-all w-[380px] sm:w-[420px] md:w-[450px] break-words"
+      className="bg-white dark:bg-gray-900 shadow-lg rounded-2xl p-5 border hover:shadow-xl transition-all w-full"
     >
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -99,7 +90,6 @@ export default function DonorCard({ donor }: { donor: Donor }) {
             {donor.gender || "Not specified"}
           </p>
         </div>
-
         <span className="bg-red-100 text-red-600 dark:bg-red-700 dark:text-white px-3 py-1 rounded-lg font-semibold text-lg">
           <Droplet className="w-4 h-4 inline-block mr-1" />
           {donor.bloodType}
@@ -116,7 +106,7 @@ export default function DonorCard({ donor }: { donor: Donor }) {
       {donor.email && (
         <div className="flex items-center mt-2 text-gray-600 dark:text-gray-300 gap-2">
           <Mail className="w-5 h-5 text-blue-500" />
-          <span className="break-words w-[300px] sm:w-[350px]">{donor.email}</span>
+          <span className="break-words">{donor.email}</span>
         </div>
       )}
 
@@ -131,14 +121,6 @@ export default function DonorCard({ donor }: { donor: Donor }) {
           <p className="flex items-center gap-2">
             <Heart className="w-4 h-4 text-pink-500" /> Weight: {donor.weight}kg
           </p>
-        )}
-        {donor.healthIssues && (
-          <p className="col-span-2 text-gray-600 dark:text-gray-300">
-            <strong>Health Issues:</strong> {donor.healthIssues}
-          </p>
-        )}
-        {donor.notes && (
-          <p className="col-span-2 italic text-gray-500">"{donor.notes}"</p>
         )}
         {donor.lastDonation && (
           <p className="col-span-2 flex items-center gap-2 text-gray-600 dark:text-gray-300">

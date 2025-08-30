@@ -1,11 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false,
-  experimental: {
-    appDir: true,
-  },
+  reactStrictMode: true, // Better performance & fewer bugs
+  swcMinify: true,       // Ensures optimized builds
+
+  // ✅ Fixes "fs" issue when deploying on Vercel
   webpack: (config) => {
-    config.resolve.fallback = { fs: false };
+    if (!config.resolve.fallback) {
+      config.resolve.fallback = {};
+    }
+    config.resolve.fallback.fs = false;
     return config;
   },
 };
