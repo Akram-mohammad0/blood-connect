@@ -12,12 +12,10 @@ model Donor {
   name         String
   bloodType    String
   gender       String
-  location     String        // Keep this for city/state name
-  latitude     Float         // ✅ New: for Google Maps & distance
-  longitude    Float         // ✅ New: for Google Maps & distance
+  location     String
   age          Int
   weight       Int
-  contact      String
+  contact      String   @unique
   email        String?
   healthIssues String?
   notes        String?

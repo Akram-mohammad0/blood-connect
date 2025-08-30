@@ -13,13 +13,30 @@ import {
   Heart,
 } from "lucide-react";
 
+// 🌍 Country codes mapping based on common locations
+const countryCodes: Record<string, string> = {
+  India: "91",
+  USA: "1",
+  Canada: "1",
+  UK: "44",
+  Australia: "61",
+  Germany: "49",
+  France: "33",
+  UAE: "971",
+  Pakistan: "92",
+  Bangladesh: "880",
+  Nepal: "977",
+  SriLanka: "94",
+  // Add more if needed
+};
+
 type Donor = {
   id: number;
   name: string;
   bloodType: string;
   gender?: string;
   location: string;
-  contact: string; // E.164 format from API
+  contact: string;
   email?: string;
   age?: number;
   weight?: number;
@@ -27,27 +44,40 @@ type Donor = {
   notes?: string;
   lastDonation?: string | null;
   createdAt: string;
-  distance?: number; // ✅ from API
-  callLink?: string; // ✅ from API
-  whatsappLink?: string; // ✅ from API
 };
 
 export default function DonorCard({ donor }: { donor: Donor }) {
-  // ✅ Use links directly from API
+  // ✅ Get correct country code based on location
+  const getCountryCode = (location: string): string => {
+    if (!location) return "91"; // Default India 🇮🇳
+    const foundCountry = Object.keys(countryCodes).find((country) =>
+      location.toLowerCase().includes(country.toLowerCase())
+    );
+    return foundCountry ? countryCodes[foundCountry] : "91"; // Fallback to +91
+  };
+
+  // ✅ Format number into proper international format
+  const formatPhoneNumber = (number: string, location: string) => {
+    const cleaned = number.replace(/\D/g, ""); // Remove spaces, dashes, etc.
+    const countryCode = getCountryCode(location);
+
+    // If number already starts with the code → return as is
+    if (cleaned.startsWith(countryCode)) return cleaned;
+
+    return `${countryCode}${cleaned}`;
+  };
+
+  // ✅ Handle phone call
   const handleCall = () => {
-    if (donor.callLink) window.open(donor.callLink);
+    const formattedNumber = formatPhoneNumber(donor.contact, donor.location);
+    window.open(`tel:+${formattedNumber}`);
   };
 
+  // ✅ Handle WhatsApp chat
   const handleWhatsApp = () => {
-    if (donor.whatsappLink) window.open(donor.whatsappLink, "_blank");
-  };
-
-  const handleEmail = () => {
-    if (donor.email) {
-      window.open(
-        `mailto:${donor.email}?subject=Blood Donation&body=Hi ${donor.name}, I would like to contact you regarding blood donation.`
-      );
-    }
+    const formattedNumber = formatPhoneNumber(donor.contact, donor.location);
+    const message = `Hi ${donor.name}, I found your details on the Blood Donor app. Are you available for blood donation?`;
+    window.open(`https://wa.me/${formattedNumber}?text=${encodeURIComponent(message)}`);
   };
 
   return (
@@ -76,12 +106,10 @@ export default function DonorCard({ donor }: { donor: Donor }) {
         </span>
       </div>
 
-      {/* Location + distance */}
+      {/* Location */}
       <div className="flex items-center mt-3 text-gray-600 dark:text-gray-300 gap-2">
         <MapPin className="w-5 h-5 text-red-500" />
-        <span>
-          {donor.location} {donor.distance && `• ${donor.distance.toFixed(2)} km away`}
-        </span>
+        <span>{donor.location}</span>
       </div>
 
       {/* Email */}
@@ -121,36 +149,22 @@ export default function DonorCard({ donor }: { donor: Donor }) {
       </div>
 
       {/* Buttons */}
-      <div className="flex flex-wrap gap-3 mt-5">
-        {donor.callLink && (
-          <button
-            onClick={handleCall}
-            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-xl shadow-md transition-all"
-          >
-            <Phone className="w-5 h-5" />
-            Call
-          </button>
-        )}
+      <div className="flex gap-3 mt-5">
+        <button
+          onClick={handleCall}
+          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-xl shadow-md transition-all"
+        >
+          <Phone className="w-5 h-5" />
+          Call
+        </button>
 
-        {donor.whatsappLink && (
-          <button
-            onClick={handleWhatsApp}
-            className="flex items-center gap-2 bg-[#25D366] hover:bg-green-600 text-white font-medium px-4 py-2 rounded-xl shadow-md transition-all"
-          >
-            <MessageCircle className="w-5 h-5" />
-            WhatsApp
-          </button>
-        )}
-
-        {donor.email && (
-          <button
-            onClick={handleEmail}
-            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-xl shadow-md transition-all"
-          >
-            <Mail className="w-5 h-5" />
-            Email
-          </button>
-        )}
+        <button
+          onClick={handleWhatsApp}
+          className="flex items-center gap-2 bg-[#25D366] hover:bg-green-600 text-white font-medium px-4 py-2 rounded-xl shadow-md transition-all"
+        >
+          <MessageCircle className="w-5 h-5" />
+          WhatsApp
+        </button>
       </div>
 
       {/* Registered Date */}

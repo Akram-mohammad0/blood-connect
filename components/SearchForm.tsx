@@ -4,10 +4,8 @@ import { useState } from "react";
 import { Search, MapPin, Droplet, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
-// ✅ Blood types list
-const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+const BLOOD_TYPES = ["A+","A-","B+","B-","AB+","AB-","O+","O-"];
 
-// ✅ Full donor interface based on Prisma schema
 interface Donor {
   id: number;
   name: string;
@@ -24,23 +22,15 @@ interface Donor {
   createdAt: string;
 }
 
-// ✅ Props for SearchForm
 interface SearchFormProps {
   onResults: (data: Donor[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (msg: string) => void;
-  userCoords?: { lat: number; lng: number } | null; // ✅ Added
 }
 
-export default function SearchForm({
-  onResults,
-  setLoading,
-  setError,
-  userCoords, // ✅ Accept coords
-}: SearchFormProps) {
+export default function SearchForm({ onResults, setLoading, setError }: SearchFormProps) {
   const [q, setQ] = useState({ location: "", bloodType: "" });
 
-  // ✅ Search donors
   const search = async () => {
     if (!q.location.trim() || !q.bloodType.trim()) {
       setError("⚠️ Please enter both location and blood group.");
@@ -51,29 +41,20 @@ export default function SearchForm({
     setLoading(true);
 
     try {
-      // Build query params
       const params = new URLSearchParams({
         location: q.location.trim(),
         bloodType: q.bloodType.trim().toUpperCase(),
-        ...(userCoords ? { lat: userCoords.lat.toString(), lng: userCoords.lng.toString() } : {}), // ✅ send coords
       });
 
-      // API endpoint
       const url = `${window.location.origin}/api/donors?${params.toString()}`;
-      console.log("🔗 Fetching donors:", url);
-
       const res = await fetch(url);
-      console.log("🌐 Response status:", res.status);
-      if (!res.ok) throw new Error(`Failed to fetch donors (${res.status})`);
 
-      // Get full donor details
+      if (!res.ok) throw new Error(`Failed to fetch donors (${res.status})`);
       const data: Donor[] = await res.json();
-      console.log("📦 Donors received:", data);
 
       onResults(Array.isArray(data) ? data : []);
       if (!data.length) setError("No donors found matching your criteria.");
     } catch (err: any) {
-      console.error("❌ Error fetching donors:", err);
       setError(err.message || "Something went wrong while fetching donors.");
       onResults([]);
     } finally {
@@ -81,7 +62,6 @@ export default function SearchForm({
     }
   };
 
-  // ✅ Clear search fields
   const clear = () => {
     setQ({ location: "", bloodType: "" });
     onResults([]);
@@ -100,9 +80,7 @@ export default function SearchForm({
         Search Blood Donors
       </h2>
 
-      {/* Input Fields */}
       <div className="grid gap-4 sm:grid-cols-2 mt-4">
-        {/* Location Input */}
         <div className="relative">
           <MapPin className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
           <input
@@ -113,7 +91,6 @@ export default function SearchForm({
           />
         </div>
 
-        {/* Blood Type Dropdown */}
         <div className="relative">
           <Droplet className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
           <select
@@ -123,19 +100,15 @@ export default function SearchForm({
           >
             <option value="">Select Blood Type *</option>
             {BLOOD_TYPES.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
+              <option key={b} value={b}>{b}</option>
             ))}
           </select>
         </div>
       </div>
 
-      {/* Action Buttons */}
       <div className="flex gap-3 mt-5">
         <button
           onClick={search}
-          disabled={false}
           className="flex items-center gap-2 px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium shadow-md transition-transform transform hover:scale-105"
         >
           <Search className="w-5 h-5" />

@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import SearchForm from "@/components/SearchForm";
-import DonorCard from "@/components/DonorCard";
-import { Donor } from "@/types";
+import DonorCard, { Donor } from "@/components/DonorCard";
 import { motion } from "framer-motion";
 
 export default function DonorPage() {
@@ -22,17 +21,22 @@ export default function DonorPage() {
         🔍 Find Blood Donors
       </h1>
 
+      {/* Search Form */}
       <SearchForm
         onResults={setDonors}
         setLoading={setLoading}
         setError={setError}
       />
 
+      {/* Error Message */}
       {error && <p className="mt-4 text-red-500 text-center">{error}</p>}
 
+      {/* Donors List */}
       <div className="mt-8 grid gap-6 sm:grid-cols-2 md:grid-cols-3">
         {loading ? (
-          <p className="text-center text-gray-500 col-span-full">Loading donors...</p>
+          <p className="text-center text-gray-500 col-span-full">
+            Loading donors...
+          </p>
         ) : donors.length > 0 ? (
           donors.map((donor) => <DonorCard key={donor.id} donor={donor} />)
         ) : (

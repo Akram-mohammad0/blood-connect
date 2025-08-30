@@ -1,110 +1,129 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { parsePhoneNumberFromString, CountryCode } from "libphonenumber-js";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 
-// ✅ Haversine formula for distance calculation
-function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371; // km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    0.5 - Math.cos(dLat) / 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      (1 - Math.cos(dLon)) / 2;
+// ✅ Validate phone number safely (auto-add +91 if missing)
+function validatePhoneNumber(number: string) {
+  if (!number) throw new Error("Contact number is required");
 
-  return R * 2 * Math.asin(Math.sqrt(a));
-}
+  // If number doesn't start with '+', add +91 by default
+  if (!number.startsWith("+")) {
+    number = "+91" + number;
+  }
 
-// ✅ Validate phone number function
-function validatePhoneNumber(number: string, country?: string) {
-  const phoneNumber = parsePhoneNumberFromString(number, {
-    defaultCountry: (country as CountryCode) || "IN",
-  });
+  const phoneNumber = parsePhoneNumberFromString(number);
   if (!phoneNumber || !phoneNumber.isValid()) {
     throw new Error("Invalid phone number");
   }
-  return phoneNumber.format("E.164"); // standardized format for DB
+
+  return phoneNumber.number; // Always returns in E.164 format (+91XXXXXXXXXX)
 }
 
-// ✅ Register Donor
+// ✅ POST: Register donor
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const {
+      name,
+      gender,
+      bloodType,
+      contact,
+      location,
+      age,
+      weight,
+      lastDonation,
+      email,
+      healthIssues,
+      notes,
+    } = body;
 
-    // Validate phone number before saving
-    const validContact = validatePhoneNumber(body.contact, body.countryCode || "IN");
+    // ✅ Check required fields
+    if (!name || !gender || !bloodType || !contact || !location) {
+      return NextResponse.json(
+        { error: "Name, Gender, BloodType, Contact, and Location are required" },
+        { status: 400 }
+      );
+    }
 
+    // ✅ Validate and normalize contact number
+    const validContact = validatePhoneNumber(contact);
+
+    // ✅ Save donor in DB
     const donor = await prisma.donor.create({
       data: {
-        name: body.name,
-        gender: body.gender,
-        age: body.age,
-        bloodType: body.bloodType,
-        weight: body.weight,
-        lastDonation: body.lastDonation ? new Date(body.lastDonation) : null,
-        location: body.location,
-        latitude: body.latitude,
-        longitude: body.longitude,
-        email: body.email,
+        name,
+        gender,
+        bloodType: bloodType.toUpperCase(),
+        location,
         contact: validContact,
-        healthIssues: body.healthIssues,
-        notes: body.notes,
+        age: age ? Number(age) : 0,
+        weight: weight ? Number(weight) : 0,
+        lastDonation: lastDonation ? new Date(lastDonation) : null,
+        email: email || null,
+        healthIssues: healthIssues || null,
+        notes: notes || null,
       },
     });
 
     return NextResponse.json(donor, { status: 201 });
   } catch (error: any) {
     console.error("❌ Error creating donor:", error);
-    return NextResponse.json({ error: error.message || "Failed to register donor" }, { status: 400 });
+
+    // ✅ Handle duplicate contact number error
+    if (error.code === "P2002") {
+      return NextResponse.json(
+        { error: "A donor with this contact already exists." },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: error.message || "Failed to register donor" },
+      { status: 500 }
+    );
   }
 }
 
-// ✅ Search Donors
+// ✅ GET: Find donors by location + blood type
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const location = searchParams.get("location");
-    const bloodType = searchParams.get("bloodType");
-    const userLat = searchParams.get("lat");
-    const userLng = searchParams.get("lng");
+    const location = searchParams.get("location") || "";
+    const bloodType = searchParams.get("bloodType") || "";
 
-    if (!bloodType) {
-      return NextResponse.json({ error: "Missing blood type" }, { status: 400 });
+    if (!location || !bloodType) {
+      return NextResponse.json(
+        { error: "Location and Blood Type are required" },
+        { status: 400 }
+      );
     }
 
-    // Fetch donors by blood type (and optional location match)
-    let donors = await prisma.donor.findMany({
+    // ✅ Search donors by location + blood type (case-insensitive)
+    const donors = await prisma.donor.findMany({
       where: {
-        bloodType: { equals: bloodType, mode: "insensitive" },
-        ...(location ? { location: { equals: location, mode: "insensitive" } } : {}),
+        AND: [
+          {
+            location: {
+              contains: location,
+              mode: "insensitive",
+            },
+          },
+          {
+            bloodType: bloodType.toUpperCase(),
+          },
+        ],
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
-    // Sort by nearest if coordinates provided
-    if (userLat && userLng) {
-      const lat = parseFloat(userLat);
-      const lng = parseFloat(userLng);
-
-      donors = donors
-        .map((d) => ({
-          ...d,
-          distance: Math.round(getDistance(lat, lng, d.latitude, d.longitude) * 100) / 100, // ✅ round to 2 decimals
-        }))
-        .sort((a, b) => a.distance - b.distance);
-    }
-
-    // Add ready-to-use call and WhatsApp links
-    donors = donors.map((d) => ({
-      ...d,
-      callLink: `tel:${d.contact}`,
-      whatsappLink: `https://wa.me/${d.contact.replace(/\D/g, "")}`,
-    }));
-
     return NextResponse.json(donors, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Error fetching donors:", error);
-    return NextResponse.json({ error: "Failed to fetch donors" }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message || "Failed to fetch donors" },
+      { status: 500 }
+    );
   }
 }
